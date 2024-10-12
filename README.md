@@ -11,7 +11,7 @@ This project aims to create an automated system to streamline stock management p
 
 ## 2. System Components
 
-- **Robot Hardware:**
+
     - **Mobile Platform:** A robust and maneuverable base for the robot to move around the warehouse.
     - **Sensors:** Cameras for visual perception, sensors for distance measurement (e.g., LiDAR, ultrasonic), and other sensors as needed for navigation and obstacle avoidance.
     - **Actuators:** Grippers or other mechanisms for picking up and handling items.
