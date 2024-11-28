@@ -57,7 +57,7 @@ class PathFinderApp:
         self.legend_canvas.create_text(40, 50, anchor="w", text="End Point", fill="black")
         
         self.legend_canvas.create_rectangle(10, 70, 30, 90, outline="black", fill="orange")
-        self.legend_canvas.create_text(40, 80, anchor="w", text="User Points", fill="black")
+        self.legend_canvas.create_text(40, 80, anchor="w", text="Stops", fill="black")
         
         self.canvas = tk.Canvas(self.root, width=400, height=400, bg="white")
         self.canvas.grid(row=1, column=0, padx=10, pady=10)
