@@ -2,6 +2,7 @@
 import tkinter as tk
 from tkinter import simpledialog, messagebox
 from spa import find_shortest_path
+import threading
 
 class PathFinderApp:
     def __init__(self, root):
@@ -31,7 +32,7 @@ class PathFinderApp:
         self.points_entry = tk.Entry(control_frame)
         self.points_entry.grid(row=0, column=1, padx=5, pady=5)
         
-        self.find_button = tk.Button(control_frame, text="Find Path", command=self.find_path)
+        self.find_button = tk.Button(control_frame, text="Find Path", command=self.start_find_path_thread)
         self.find_button.grid(row=0, column=2, padx=5, pady=5)
         
         self.rows_label = tk.Label(control_frame, text="Rows:")
@@ -107,7 +108,10 @@ class PathFinderApp:
         end_x = end_col * cell_width + cell_width / 2
         end_y = end_row * cell_height + cell_height / 2
         
-        self.canvas.create_line(start_x, start_y, end_x, end_y, arrow=tk.LAST, fill="blue")
+        self.canvas.create_line(start_x, start_y, end_x, end_y, arrow=tk.LAST, fill="black")
+    
+    def start_find_path_thread(self):
+        threading.Thread(target=self.find_path).start()
     
     def find_path(self):
         try:

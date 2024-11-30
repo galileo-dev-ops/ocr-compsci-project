@@ -1,6 +1,7 @@
 # spa.py
 from collections import deque
 import itertools
+import heapq
 
 def find_shortest_path(start, end, points, rows=6, cols=6):
     def number_to_coord(num):
@@ -22,27 +23,40 @@ def find_shortest_path(start, end, points, rows=6, cols=6):
             neighbors.append((row, col + 1))
         return neighbors
     
-    def bfs(start, end):
+    def heuristic(a, b):
+        return abs(a[0] - b[0]) + abs(a[1] - b[1])
+    
+    def a_star(start, end):
         start_row, start_col = number_to_coord(start)
         end_row, end_col = number_to_coord(end)
-        queue = deque([(start_row, start_col, [start])])
-        visited = set()
+        start_coord = (start_row, start_col)
+        end_coord = (end_row, end_col)
         
-        while queue:
-            current_row, current_col, current_path = queue.popleft()
+        open_set = []
+        heapq.heappush(open_set, (0, start_coord))
+        came_from = {}
+        g_score = {start_coord: 0}
+        f_score = {start_coord: heuristic(start_coord, end_coord)}
+        
+        while open_set:
+            _, current = heapq.heappop(open_set)
             
-            if (current_row, current_col) in visited:
-                continue
+            if current == end_coord:
+                path = []
+                while current in came_from:
+                    path.append(coord_to_number(*current))
+                    current = came_from[current]
+                path.append(start)
+                path.reverse()
+                return path
             
-            visited.add((current_row, current_col))
-            
-            if current_row == end_row and current_col == end_col:
-                return current_path
-            
-            for neighbor in get_neighbors(current_row, current_col):
-                next_row, next_col = neighbor
-                next_num = coord_to_number(next_row, next_col)
-                queue.append((next_row, next_col, current_path + [next_num]))
+            for neighbor in get_neighbors(*current):
+                tentative_g_score = g_score[current] + 1
+                if neighbor not in g_score or tentative_g_score < g_score[neighbor]:
+                    came_from[neighbor] = current
+                    g_score[neighbor] = tentative_g_score
+                    f_score[neighbor] = tentative_g_score + heuristic(neighbor, end_coord)
+                    heapq.heappush(open_set, (f_score[neighbor], neighbor))
         
         return None
     
@@ -51,7 +65,7 @@ def find_shortest_path(start, end, points, rows=6, cols=6):
     
     for i, point1 in enumerate(all_points):
         for point2 in all_points[i+1:]:
-            path = bfs(point1, point2)
+            path = a_star(point1, point2)
             if path:
                 all_paths[(point1, point2)] = path
                 all_paths[(point2, point1)] = path[::-1]
