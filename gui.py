@@ -95,20 +95,6 @@ class PathFinderApp:
         self.canvas.create_rectangle(x1, y1, x2, y2, outline="black", fill=color)
         self.canvas.create_text(x1 + cell_width / 2, y1 + cell_height / 2, text=str(point), fill="green")
     
-    def draw_arrow(self, start_point, end_point):
-        cell_width = 400 // self.cols
-        cell_height = 400 // self.rows
-        
-        start_row, start_col = divmod(start_point - 1, self.cols)
-        end_row, end_col = divmod(end_point - 1, self.cols)
-        
-        start_x = start_col * cell_width + cell_width / 2
-        start_y = start_row * cell_height + cell_height / 2
-        end_x = end_col * cell_width + cell_width / 2
-        end_y = end_row * cell_height + cell_height / 2
-        
-        self.canvas.create_line(start_x, start_y, end_x, end_y, arrow=tk.LAST, fill="blue")
-    
     def find_path(self):
         try:
             points = list(map(int, self.points_entry.get().split(',')))
@@ -130,9 +116,6 @@ class PathFinderApp:
         self.draw_grid()
         cell_width = 400 // self.cols
         cell_height = 400 // self.rows
-        
-        for i in range(len(path) - 1):
-            self.draw_arrow(path[i], path[i + 1])
         
         for point in path:
             row, col = divmod(point - 1, self.cols)
