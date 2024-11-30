@@ -70,24 +70,18 @@ def find_shortest_path(start, end, points, rows=6, cols=6):
                 all_paths[(point1, point2)] = path
                 all_paths[(point2, point1)] = path[::-1]
     
-    min_path = None
-    min_length = float('inf')
+    def nearest_neighbor(start, points):
+        unvisited = set(points)
+        current = start
+        path = [current]
+        while unvisited:
+            next_point = min(unvisited, key=lambda point: len(all_paths[(current, point)]))
+            path += all_paths[(current, next_point)][1:]
+            current = next_point
+            unvisited.remove(next_point)
+        return path
     
-    for perm in itertools.permutations(points):
-        current_path = [start]
-        current_length = 0
-        current_point = start
-        
-        for point in perm:
-            current_path += all_paths[(current_point, point)][1:]
-            current_length += len(all_paths[(current_point, point)]) - 1
-            current_point = point
-        
-        current_path += all_paths[(current_point, end)][1:]
-        current_length += len(all_paths[(current_point, end)]) - 1
-        
-        if current_length < min_length:
-            min_length = current_length
-            min_path = current_path
+    path = nearest_neighbor(start, points)
+    path += all_paths[(path[-1], end)][1:]
     
-    return min_path
+    return path
