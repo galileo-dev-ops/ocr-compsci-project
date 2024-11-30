@@ -135,9 +135,6 @@ class PathFinderApp:
         cell_width = 400 // self.cols
         cell_height = 400 // self.rows
         
-        for i in range(len(path) - 1):
-            self.draw_arrow(path[i], path[i + 1])
-        
         for point in path:
             row, col = divmod(point - 1, self.cols)
             x1 = col * cell_width
