@@ -1,6 +1,6 @@
 # gui.py
 import tkinter as tk
-from tkinter import simpledialog, messagebox, Toplevel
+from tkinter import simpledialog, messagebox, Toplevel, Menu
 from spa import find_shortest_path
 import threading
 import random
@@ -20,6 +20,7 @@ class PathFinderApp:
         populate_database(self.rows, self.cols)
         
         self.create_widgets()
+        self.create_menu()
         self.visualization_window = None  # Initialize visualization window attribute
         self.canvas = None  # Initialize canvas attribute
     
@@ -81,6 +82,48 @@ class PathFinderApp:
         
         self.update_quantity_button = tk.Button(control_frame, text="Update Quantity", command=self.update_quantity)
         self.update_quantity_button.grid(row=6, column=0, padx=5, pady=5, columnspan=3)
+    
+    def create_menu(self):
+        menu_bar = Menu(self.root)
+        self.root.config(menu=menu_bar)
+        
+        help_menu = Menu(menu_bar, tearoff=0)
+        help_menu.add_command(label="Help", command=self.show_help)
+        menu_bar.add_cascade(label="Help", menu=help_menu)
+    
+    def show_help(self):
+        help_window = Toplevel(self.root)
+        help_window.title("Help")
+        help_text = tk.Text(help_window, wrap=tk.WORD, width=80, height=20)
+        help_text.pack(expand=True, fill=tk.BOTH)
+        help_text.insert(tk.END, """
+        Welcome to StockBot!
+
+        This application helps you find the shortest path in a warehouse grid while avoiding out-of-stock items.
+
+        Features:
+        - Enter the number of rows and columns to configure the grid.
+        - Enter points (comma-separated) to specify the items you want to visit.
+        - Click "Find Path" to calculate and visualize the shortest path.
+        - Out-of-stock items are highlighted in red and avoided in the path calculation.
+        - Start and end points are highlighted in blue.
+        - User-specified points are highlighted in yellow.
+        - The calculated path is highlighted in green.
+        - Query an item by its ID to see its location and quantity.
+        - Update the quantity of an item by its ID.
+
+        How to Use:
+        1. Configure the grid by entering the number of rows and columns.
+        2. Enter the points you want to visit in the "Points" field.
+        3. Click "Find Path" to calculate and visualize the shortest path.
+        4. Use the "Query ItemID" button to get information about a specific item.
+        5. Use the "Update Quantity" button to update the quantity of a specific item.
+
+        For more information, please refer to the user manual or contact support.
+
+        Thank you for using StockBot!
+        """)
+        help_text.config(state=tk.DISABLED)
     
     def open_visualization_window(self):
         if self.visualization_window is None or not self.visualization_window.winfo_exists():
