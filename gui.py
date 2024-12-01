@@ -347,28 +347,63 @@ class PathFinderApp:
     
     def export_grid(self):
         file_path = filedialog.asksaveasfilename(defaultextension=".png", filetypes=[("PNG files", "*.png")])
-        if file_path:
-            cell_width = min(800 // self.cols, 800 // self.rows)
-            cell_height = cell_width
-            image = Image.new("RGB", (self.cols * cell_width, self.rows * cell_height), "white")
-            draw = ImageDraw.Draw(image)
-            
-            for i in range(self.rows):
-                for j in range(self.cols):
-                    x1 = j * cell_width
-                    y1 = i * cell_height
-                    x2 = x1 + cell_width
-                    y2 = y1 + cell_height
-                    item = get_item(i, j)
-                    if item and item[1] == 0:
-                        color = "red"
-                    else:
-                        color = "white"
-                    draw.rectangle([x1, y1, x2, y2], outline="black", fill=color)
-                    draw.text((x1 + cell_width / 2, y1 + cell_height / 2), str(i * self.cols + j + 1), fill="green")
-            
-            image.save(file_path)
-            messagebox.showinfo("Export Grid", "Grid exported successfully.")
+        if not file_path:
+            return
+        
+        cell_width = min(800 // self.cols, 800 // self.rows)
+        cell_height = cell_width
+        img_width = self.cols * cell_width
+        img_height = self.rows * cell_height
+        
+        image = Image.new("RGB", (img_width, img_height), "white")
+        draw = ImageDraw.Draw(image)
+        
+        for i in range(self.rows):
+            for j in range(self.cols):
+                x1 = j * cell_width
+                y1 = i * cell_height
+                x2 = x1 + cell_width
+                y2 = y1 + cell_height
+                item = get_item(i, j)
+                if item and item[1] == 0:
+                    color = "red"
+                else:
+                    color = "white"
+                draw.rectangle([x1, y1, x2, y2], outline="black", fill=color)
+                draw.text((x1 + cell_width / 2, y1 + cell_height / 2), str(i * self.cols + j + 1), fill="green")
+        
+        # Highlight the path
+        if hasattr(self, 'path') and self.path:
+            for point in self.path:
+                row, col = divmod(point - 1, self.cols)
+                x1 = col * cell_width
+                y1 = row * cell_height
+                x2 = x1 + cell_width
+                y2 = y1 + cell_height
+                draw.rectangle([x1, y1, x2, y2], outline="black", fill="green")
+                draw.text((x1 + cell_width / 2, y1 + cell_height / 2), str(point), fill="green")
+        
+        # Highlight start and end points
+        if hasattr(self, 'start_point') and self.start_point:
+            row, col = divmod(self.start_point - 1, self.cols)
+            x1 = col * cell_width
+            y1 = row * cell_height
+            x2 = x1 + cell_width
+            y2 = y1 + cell_height
+            draw.rectangle([x1, y1, x2, y2], outline="black", fill="blue")
+            draw.text((x1 + cell_width / 2, y1 + cell_height / 2), str(self.start_point), fill="green")
+        
+        if hasattr(self, 'end_point') and self.end_point:
+            row, col = divmod(self.end_point - 1, self.cols)
+            x1 = col * cell_width
+            y1 = row * cell_height
+            x2 = x1 + cell_width
+            y2 = y1 + cell_height
+            draw.rectangle([x1, y1, x2, y2], outline="black", fill="blue")
+            draw.text((x1 + cell_width / 2, y1 + cell_height / 2), str(self.end_point), fill="green")
+        
+        image.save(file_path)
+        messagebox.showinfo("Export Grid", "Grid exported successfully.")
 
 if __name__ == "__main__":
     root = tk.Tk()
