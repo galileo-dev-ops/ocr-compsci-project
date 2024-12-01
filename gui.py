@@ -1,9 +1,11 @@
 # gui.py
 import tkinter as tk
 from tkinter import simpledialog, messagebox, Toplevel, Menu
+from tkinter import filedialog
 from spa import find_shortest_path
 import threading
 import random
+import json
 from database import create_database, populate_database, get_item_by_id, get_item, update_item_quantity
 
 class PathFinderApp:
@@ -87,6 +89,11 @@ class PathFinderApp:
         menu_bar = Menu(self.root)
         self.root.config(menu=menu_bar)
         
+        file_menu = Menu(menu_bar, tearoff=0)
+        file_menu.add_command(label="Save Configuration", command=self.save_configuration)
+        file_menu.add_command(label="Load Configuration", command=self.load_configuration)
+        menu_bar.add_cascade(label="File", menu=file_menu)
+        
         help_menu = Menu(menu_bar, tearoff=0)
         help_menu.add_command(label="Help", command=self.show_help)
         menu_bar.add_cascade(label="Help", menu=help_menu)
@@ -111,6 +118,7 @@ class PathFinderApp:
         - The calculated path is highlighted in green.
         - Query an item by its ID to see its location and quantity.
         - Update the quantity of an item by its ID.
+        - Save and load grid configurations.
 
         How to Use:
         1. Configure the grid by entering the number of rows and columns.
@@ -118,6 +126,8 @@ class PathFinderApp:
         3. Click "Find Path" to calculate and visualize the shortest path.
         4. Use the "Query ItemID" button to get information about a specific item.
         5. Use the "Update Quantity" button to update the quantity of a specific item.
+        6. Use the "Save Configuration" option to save the current grid configuration.
+        7. Use the "Load Configuration" option to load a saved grid configuration.
 
         For more information, please refer to the user manual or contact support.
 
@@ -248,7 +258,7 @@ class PathFinderApp:
                 self.draw_path(path, valid_points)
                 self.path_output.delete(1.0, tk.END)
                 self.path_output.insert(tk.END, " -> ".join(map(str, path)))
-                self.path_distance_label.config(text=f"Total Path Distance: {len(path) - 1}")
+                self.path_distance_label.config(text=f"Total Path Distance: {self.calculate_path_cost(path)}")
             else:
                 messagebox.showinfo("No Path", "No path found between the given points.")
         except ValueError as e:
@@ -283,6 +293,45 @@ class PathFinderApp:
         for point in self.points:
             if point in valid_points:
                 self.highlight_point(point, "yellow")
+    
+    def save_configuration(self):
+        config = {
+            "rows": self.rows,
+            "cols": self.cols,
+            "points": self.points,
+            "items": []
+        }
+        for i in range(self.rows):
+            for j in range(self.cols):
+                item = get_item(i, j)
+                if item:
+                    item_id, quantity = item
+                    config["items"].append({"row": i, "col": j, "item_id": item_id, "quantity": quantity})
+        
+        file_path = filedialog.asksaveasfilename(defaultextension=".json", filetypes=[("JSON files", "*.json")])
+        if file_path:
+            with open(file_path, "w") as file:
+                json.dump(config, file)
+            messagebox.showinfo("Save Configuration", "Configuration saved successfully.")
+    
+    def load_configuration(self):
+        file_path = filedialog.askopenfilename(defaultextension=".json", filetypes=[("JSON files", "*.json")])
+        if file_path:
+            with open(file_path, "r") as file:
+                config = json.load(file)
+            
+            self.rows = config["rows"]
+            self.cols = config["cols"]
+            self.points = config["points"]
+            self.rows_value.config(text=str(self.rows))
+            self.cols_value.config(text=str(self.cols))
+            
+            create_database()
+            for item in config["items"]:
+                update_item_quantity(item["item_id"], item["quantity"])
+            
+            self.draw_grid()
+            messagebox.showinfo("Load Configuration", "Configuration loaded successfully.")
 
 if __name__ == "__main__":
     root = tk.Tk()
