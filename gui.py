@@ -6,6 +6,7 @@ from spa import find_shortest_path
 import threading
 import random
 import json
+from PIL import Image, ImageDraw
 from database import create_database, populate_database, get_item_by_id, get_item, update_item_quantity
 
 class PathFinderApp:
@@ -84,6 +85,9 @@ class PathFinderApp:
         
         self.update_quantity_button = tk.Button(control_frame, text="Update Quantity", command=self.update_quantity)
         self.update_quantity_button.grid(row=6, column=0, padx=5, pady=5, columnspan=3)
+        
+        self.export_button = tk.Button(control_frame, text="Export Grid", command=self.export_grid)
+        self.export_button.grid(row=7, column=0, padx=5, pady=5, columnspan=3)
     
     def create_menu(self):
         menu_bar = Menu(self.root)
@@ -100,7 +104,6 @@ class PathFinderApp:
     
     def show_help(self):
         help_window = Toplevel(self.root)
-        help_window.geometry("800x400")
         help_window.title("Help")
         help_text = tk.Text(help_window, wrap=tk.WORD, width=80, height=20)
         help_text.pack(expand=True, fill=tk.BOTH)
@@ -120,6 +123,7 @@ class PathFinderApp:
         - Query an item by its ID to see its location and quantity.
         - Update the quantity of an item by its ID.
         - Save and load grid configurations.
+        - Export the grid and path as an image.
 
         How to Use:
         1. Configure the grid by entering the number of rows and columns.
@@ -129,6 +133,7 @@ class PathFinderApp:
         5. Use the "Update Quantity" button to update the quantity of a specific item.
         6. Use the "Save Configuration" option to save the current grid configuration.
         7. Use the "Load Configuration" option to load a saved grid configuration.
+        8. Use the "Export Grid" button to export the grid and path as an image file.
 
         For more information, please refer to the user manual or contact support.
 
@@ -256,7 +261,7 @@ class PathFinderApp:
         try:
             path = find_shortest_path(self.start_point, self.end_point, valid_points, self.rows, self.cols)
             if path:
-                self.draw_path(path, valid_points)
+                self.animate_path(path, valid_points)
                 self.path_output.delete(1.0, tk.END)
                 self.path_output.insert(tk.END, " -> ".join(map(str, path)))
                 self.path_distance_label.config(text=f"Total Path Distance: {self.calculate_path_cost(path)}")
@@ -265,13 +270,15 @@ class PathFinderApp:
         except ValueError as e:
             messagebox.showerror("Path Error", str(e))
     
-    def draw_path(self, path, valid_points):
+    def animate_path(self, path, valid_points):
         self.draw_grid()
         cell_width = min(800 // self.cols, 800 // self.rows)
         cell_height = cell_width
         
         for i in range(len(path) - 1):
             self.draw_arrow(path[i], path[i + 1])
+            self.root.update()
+            self.root.after(100)  # Adjust the delay for animation speed
         
         for point in path:
             row, col = divmod(point - 1, self.cols)
@@ -294,6 +301,10 @@ class PathFinderApp:
         for point in self.points:
             if point in valid_points:
                 self.highlight_point(point, "yellow")
+    
+    def calculate_path_cost(self, path):
+        # Calculate the total cost of the path (e.g., total distance)
+        return len(path) - 1
     
     def save_configuration(self):
         config = {
@@ -333,6 +344,31 @@ class PathFinderApp:
             
             self.draw_grid()
             messagebox.showinfo("Load Configuration", "Configuration loaded successfully.")
+    
+    def export_grid(self):
+        file_path = filedialog.asksaveasfilename(defaultextension=".png", filetypes=[("PNG files", "*.png")])
+        if file_path:
+            cell_width = min(800 // self.cols, 800 // self.rows)
+            cell_height = cell_width
+            image = Image.new("RGB", (self.cols * cell_width, self.rows * cell_height), "white")
+            draw = ImageDraw.Draw(image)
+            
+            for i in range(self.rows):
+                for j in range(self.cols):
+                    x1 = j * cell_width
+                    y1 = i * cell_height
+                    x2 = x1 + cell_width
+                    y2 = y1 + cell_height
+                    item = get_item(i, j)
+                    if item and item[1] == 0:
+                        color = "red"
+                    else:
+                        color = "white"
+                    draw.rectangle([x1, y1, x2, y2], outline="black", fill=color)
+                    draw.text((x1 + cell_width / 2, y1 + cell_height / 2), str(i * self.cols + j + 1), fill="green")
+            
+            image.save(file_path)
+            messagebox.showinfo("Export Grid", "Grid exported successfully.")
 
 if __name__ == "__main__":
     root = tk.Tk()
