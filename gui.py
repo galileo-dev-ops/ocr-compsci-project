@@ -145,6 +145,7 @@ class PathFinderApp:
             if quantity is not None:
                 update_item_quantity(item_id, quantity)
                 messagebox.showinfo("Update Quantity", f"ItemID: {item_id}\nNew Quantity: {quantity}")
+                self.draw_grid()
     
     def highlight_point(self, point, color):
         if self.canvas is None:
@@ -220,12 +221,16 @@ class PathFinderApp:
         
         for point in path:
             row, col = divmod(point - 1, self.cols)
-            x1 = col * cell_width
-            y1 = row * cell_height
-            x2 = x1 + cell_width
-            y2 = y1 + cell_height
-            self.canvas.create_rectangle(x1, y1, x2, y2, outline="black", fill="green")
-            self.canvas.create_text(x1 + cell_width / 2, y1 + cell_height / 2, text=str(point), fill="green")
+            item = get_item(row, col)
+            if item and item[1] == 0:
+                self.highlight_point(point, "red")
+            else:
+                x1 = col * cell_width
+                y1 = row * cell_height
+                x2 = x1 + cell_width
+                y2 = y1 + cell_height
+                self.canvas.create_rectangle(x1, y1, x2, y2, outline="black", fill="green")
+                self.canvas.create_text(x1 + cell_width / 2, y1 + cell_height / 2, text=str(point), fill="green")
         
         # Highlight start and end points
         self.highlight_point(self.start_point, "blue")
