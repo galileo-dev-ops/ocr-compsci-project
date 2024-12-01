@@ -2,6 +2,7 @@
 from collections import deque
 import itertools
 import heapq
+import random
 
 def find_shortest_path(start, end, points, rows=6, cols=6):
     def number_to_coord(num):
@@ -69,19 +70,53 @@ def find_shortest_path(start, end, points, rows=6, cols=6):
             if path:
                 all_paths[(point1, point2)] = path
                 all_paths[(point2, point1)] = path[::-1]
+            else:
+                raise ValueError(f"No path found between {point1} and {point2}")
     
-    def nearest_neighbor(start, points):
-        unvisited = set(points)
-        current = start
-        path = [current]
-        while unvisited:
-            next_point = min(unvisited, key=lambda point: len(all_paths[(current, point)]))
-            path += all_paths[(current, next_point)][1:]
-            current = next_point
-            unvisited.remove(next_point)
-        return path
+    def fitness(path):
+        return sum(len(all_paths[(path[i], path[i + 1])]) - 1 for i in range(len(path) - 1))
     
-    path = nearest_neighbor(start, points)
-    path += all_paths[(path[-1], end)][1:]
+    def mutate(path):
+        if len(path) > 3:
+            i, j = random.sample(range(1, len(path) - 1), 2)
+            path[i], path[j] = path[j], path[i]
     
-    return path
+    def crossover(parent1, parent2):
+        if len(parent1) > 3:
+            start, end = sorted(random.sample(range(1, len(parent1) - 1), 2))
+            child = [None] * len(parent1)
+            child[start:end] = parent1[start:end]
+            pointer = 0
+            for gene in parent2:
+                if gene not in child:
+                    while child[pointer] is not None:
+                        pointer += 1
+                    child[pointer] = gene
+            return child
+        return parent1[:]
+    
+    def genetic_algorithm(start, points, end, population_size=100, generations=500):
+        if len(points) == 0:
+            return [start, end]
+        
+        population_size = max(2, population_size)
+        population = [[start] + random.sample(points, len(points)) + [end] for _ in range(population_size)]
+        for _ in range(generations):
+            population.sort(key=fitness)
+            next_generation = population[:population_size // 2]
+            for _ in range(population_size // 2):
+                parent1, parent2 = random.sample(next_generation, 2)
+                child = crossover(parent1, parent2)
+                if random.random() < 0.1:
+                    mutate(child)
+                next_generation.append(child)
+            population = next_generation
+        return min(population, key=fitness)
+    
+    path = genetic_algorithm(start, points, end)
+    full_path = []
+    for i in range(len(path) - 1):
+        full_path += all_paths[(path[i], path[i + 1])][:-1]
+    full_path.append(end)
+    
+    return full_path
