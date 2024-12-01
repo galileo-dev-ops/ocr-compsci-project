@@ -8,14 +8,13 @@ from database import create_database, populate_database, get_item_by_id, get_ite
 
 class PathFinderApp:
     def __init__(self, root):
-        # Initialize the main application window
         self.root = root
-        self.root.title("StockBot")  # Set the window title
+        self.root.title("StockBot")
         
-        self.configure_grid()  # Configure the grid dimensions
-        self.start_point = 1  # Initialize the start point
-        self.end_point = self.rows * self.cols  # Initialize the end point based on grid size
-        self.points = []  # Initialize an empty list to store user input points
+        self.configure_grid()
+        self.start_point = 1
+        self.end_point = self.rows * self.cols
+        self.points = []
         
         create_database()
         populate_database(self.rows, self.cols)
@@ -25,47 +24,36 @@ class PathFinderApp:
         self.canvas = None  # Initialize canvas attribute
     
     def configure_grid(self):
-        # Prompt the user to enter the number of rows
         self.rows = simpledialog.askinteger("Configuration", "Enter the number of rows:", minvalue=1)
-        # Prompt the user to enter the number of columns
         self.cols = simpledialog.askinteger("Configuration", "Enter the number of columns:", minvalue=1)
-        # Check if the user entered valid numbers
         if not self.rows or not self.cols:
             messagebox.showerror("Invalid Input", "Please enter valid numbers for rows and columns.")
             self.root.destroy()
-
+    
     def create_widgets(self):
-        # Create a frame widget within the root window to hold control elements
         control_frame = tk.Frame(self.root)
         control_frame.grid(row=0, column=0, padx=10, pady=10)
         
-        # Create and place a label for points input
         self.points_label = tk.Label(control_frame, text="Points (comma-separated):")
         self.points_label.grid(row=0, column=0, padx=5, pady=5, sticky="e")
-        
-        # Create and place an entry widget for points input
         self.points_entry = tk.Entry(control_frame)
         self.points_entry.grid(row=0, column=1, padx=5, pady=5)
         
-        # Create and place a button to find the path
         self.find_button = tk.Button(control_frame, text="Find Path", command=self.start_find_path_thread)
         self.find_button.grid(row=0, column=2, padx=5, pady=5)
         
-        # Create and place a label for displaying the number of rows
         self.rows_label = tk.Label(control_frame, text="Rows:")
         self.rows_label.grid(row=1, column=0, padx=5, pady=5, sticky="e")
         self.rows_value = tk.Label(control_frame, text=str(self.rows))
         self.rows_value.grid(row=1, column=1, padx=5, pady=5)
         
-        # Create and place a label for displaying the number of columns
         self.cols_label = tk.Label(control_frame, text="Cols:")
         self.cols_label.grid(row=2, column=0, padx=5, pady=5, sticky="e")
         self.cols_value = tk.Label(control_frame, text=str(self.cols))
         self.cols_value.grid(row=2, column=1, padx=5, pady=5)
         
-        # Create and place a label for the legend
         self.legend_label = tk.Label(control_frame, text="Legend:")
-        self.legend_label.grid(row=3, column=0, padx=5, pady=5, columnspan=3, sticky="ew")
+        self.legend_label.grid(row=3, column=0, padx=5, pady=5, sticky="e")
         
         self.legend_canvas = tk.Canvas(control_frame, width=200, height=120, bg="white")
         self.legend_canvas.grid(row=3, column=1, padx=5, pady=5, columnspan=2)
@@ -85,7 +73,6 @@ class PathFinderApp:
         self.path_output = tk.Text(self.root, height=5, width=50)
         self.path_output.grid(row=1, column=0, padx=10, pady=10)
         
-        # Create and place a label for displaying the path distance
         self.path_distance_label = tk.Label(control_frame, text="Total Path Distance: 0")
         self.path_distance_label.grid(row=4, column=0, padx=5, pady=5, columnspan=3)
         
@@ -238,7 +225,7 @@ class PathFinderApp:
             x2 = x1 + cell_width
             y2 = y1 + cell_height
             self.canvas.create_rectangle(x1, y1, x2, y2, outline="black", fill="green")
-            self.canvas.create_text(x1 + cell_width / 2, y1 + cell_height / 2, text=str(point), fill="white")
+            self.canvas.create_text(x1 + cell_width / 2, y1 + cell_height / 2, text=str(point), fill="green")
         
         # Highlight start and end points
         self.highlight_point(self.start_point, "blue")
@@ -250,7 +237,6 @@ class PathFinderApp:
                 self.highlight_point(point, "yellow")
 
 if __name__ == "__main__":
-    # Create the main window and run the application
     root = tk.Tk()
     app = PathFinderApp(root)
     root.mainloop()
