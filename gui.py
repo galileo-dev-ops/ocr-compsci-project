@@ -100,6 +100,7 @@ class PathFinderApp:
     
     def show_help(self):
         help_window = Toplevel(self.root)
+        help_window.geometry("800x400")
         help_window.title("Help")
         help_text = tk.Text(help_window, wrap=tk.WORD, width=80, height=20)
         help_text.pack(expand=True, fill=tk.BOTH)
