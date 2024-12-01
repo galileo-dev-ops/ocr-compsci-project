@@ -23,9 +23,6 @@ def populate_database(rows, cols):
     item_id = 1
     for row in range(rows):
         for col in range(cols):
-            if item_id == 1 or item_id == rows * cols:
-                item_id += 1
-                continue
             quantity = random.randint(1, 100)  # Random quantity for each item
             c.execute('INSERT INTO items (ItemID, Row, Col, Quantity) VALUES (?, ?, ?, ?)',
                       (item_id, row, col, quantity))
