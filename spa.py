@@ -77,22 +77,29 @@ def find_shortest_path(start, end, points, rows=6, cols=6):
         return sum(len(all_paths[(path[i], path[i + 1])]) - 1 for i in range(len(path) - 1))
     
     def mutate(path):
-        i, j = random.sample(range(1, len(path) - 1), 2)
-        path[i], path[j] = path[j], path[i]
+        if len(path) > 3:
+            i, j = random.sample(range(1, len(path) - 1), 2)
+            path[i], path[j] = path[j], path[i]
     
     def crossover(parent1, parent2):
-        start, end = sorted(random.sample(range(1, len(parent1) - 1), 2))
-        child = [None] * len(parent1)
-        child[start:end] = parent1[start:end]
-        pointer = 0
-        for gene in parent2:
-            if gene not in child:
-                while child[pointer] is not None:
-                    pointer += 1
-                child[pointer] = gene
-        return child
+        if len(parent1) > 3:
+            start, end = sorted(random.sample(range(1, len(parent1) - 1), 2))
+            child = [None] * len(parent1)
+            child[start:end] = parent1[start:end]
+            pointer = 0
+            for gene in parent2:
+                if gene not in child:
+                    while child[pointer] is not None:
+                        pointer += 1
+                    child[pointer] = gene
+            return child
+        return parent1[:]
     
     def genetic_algorithm(start, points, end, population_size=100, generations=500):
+        if len(points) == 0:
+            return [start, end]
+        
+        population_size = max(2, population_size)
         population = [[start] + random.sample(points, len(points)) + [end] for _ in range(population_size)]
         for _ in range(generations):
             population.sort(key=fitness)
