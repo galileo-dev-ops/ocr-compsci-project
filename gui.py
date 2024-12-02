@@ -20,7 +20,7 @@ class PathFinderApp:
         self.points = []
         
         create_database()
-        populate_database(self.rows, self.cols)
+        populate_database(self.rows, self.cols, self.start_point, self.end_point)
         
         self.create_widgets()
         self.create_menu()
@@ -33,6 +33,9 @@ class PathFinderApp:
         if not self.rows or not self.cols:
             messagebox.showerror("Invalid Input", "Please enter valid numbers for rows and columns.")
             self.root.destroy()
+        self.start_point = 1
+        self.end_point = self.rows * self.cols
+        populate_database(self.rows, self.cols, self.start_point, self.end_point)
     
     def create_widgets(self):
         control_frame = tk.Frame(self.root)
@@ -135,8 +138,6 @@ class PathFinderApp:
         7. Use the "Load Configuration" option to load a saved grid configuration.
         8. Use the "Export Grid" button to export the grid and path as an image file.
 
-        For more information, please refer to the user manual or contact support.
-
         Thank you for using StockBot!
         """)
         help_text.config(state=tk.DISABLED)
@@ -204,7 +205,6 @@ class PathFinderApp:
             if quantity is not None:
                 update_item_quantity(item_id, quantity)
                 messagebox.showinfo("Update Quantity", f"ItemID: {item_id}\nNew Quantity: {quantity}")
-                self.draw_grid()
     
     def highlight_point(self, point, color):
         if self.canvas is None:
@@ -239,6 +239,7 @@ class PathFinderApp:
     def start_find_path_thread(self):
         threading.Thread(target=self.find_path).start()
     
+
     def find_path(self):
         try:
             points = list(map(int, self.points_entry.get().split(',')))
@@ -246,7 +247,12 @@ class PathFinderApp:
         except ValueError:
             messagebox.showerror("Invalid Input", "Please enter valid points.")
             return
-        
+
+        # Check if start or end points are in the user input
+        if self.start_point in self.points or self.end_point in self.points:
+            messagebox.showerror("Invalid Input", "You have inputted a start and/or end point. Please remove it!")
+            return
+
         # Remove out-of-stock items from the points list
         valid_points = []
         self.open_visualization_window()
@@ -257,7 +263,7 @@ class PathFinderApp:
                 self.highlight_point(point, "red")
             else:
                 valid_points.append(point)
-        
+
         try:
             path = find_shortest_path(self.start_point, self.end_point, valid_points, self.rows, self.cols)
             if path:
@@ -269,7 +275,7 @@ class PathFinderApp:
                 messagebox.showinfo("No Path", "No path found between the given points.")
         except ValueError as e:
             messagebox.showerror("Path Error", str(e))
-    
+        
     def animate_path(self, path, valid_points):
         self.draw_grid()
         cell_width = min(800 // self.cols, 800 // self.rows)

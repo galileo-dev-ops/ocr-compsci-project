@@ -16,13 +16,16 @@ def create_database():
     conn.commit()
     conn.close()
 
-def populate_database(rows, cols):
+def populate_database(rows, cols, start_point, end_point):
     conn = sqlite3.connect('warehouse.db')
     c = conn.cursor()
     c.execute('DELETE FROM items')  # Clear existing data
     item_id = 1
     for row in range(rows):
         for col in range(cols):
+            point = row * cols + col + 1
+            if point == start_point or point == end_point:
+                continue  # Skip start and end points
             quantity = random.randint(1, 100)  # Random quantity for each item
             c.execute('INSERT INTO items (ItemID, Row, Col, Quantity) VALUES (?, ?, ?, ?)',
                       (item_id, row, col, quantity))
