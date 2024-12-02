@@ -8,6 +8,7 @@ import random
 import json
 from PIL import Image, ImageDraw
 from database import create_database, populate_database, get_item_by_id, get_item, update_item_quantity
+import math
 
 class PathFinderApp:
     def __init__(self, root):
@@ -267,6 +268,7 @@ class PathFinderApp:
         try:
             path = find_shortest_path(self.start_point, self.end_point, valid_points, self.rows, self.cols)
             if path:
+                self.path = path  # Store the path in an instance variable
                 self.animate_path(path, valid_points)
                 self.path_output.delete(1.0, tk.END)
                 self.path_output.insert(tk.END, " -> ".join(map(str, path)))
@@ -378,16 +380,29 @@ class PathFinderApp:
                 draw.rectangle([x1, y1, x2, y2], outline="black", fill=color)
                 draw.text((x1 + cell_width / 2, y1 + cell_height / 2), str(i * self.cols + j + 1), fill="green")
         
-        # Highlight the path
+        # Highlight the path with arrows
         if hasattr(self, 'path') and self.path:
-            for point in self.path:
-                row, col = divmod(point - 1, self.cols)
-                x1 = col * cell_width
-                y1 = row * cell_height
-                x2 = x1 + cell_width
-                y2 = y1 + cell_height
-                draw.rectangle([x1, y1, x2, y2], outline="black", fill="green")
-                draw.text((x1 + cell_width / 2, y1 + cell_height / 2), str(point), fill="green")
+            for i in range(len(self.path) - 1):
+                start_point = self.path[i]
+                end_point = self.path[i + 1]
+                start_row, start_col = divmod(start_point - 1, self.cols)
+                end_row, end_col = divmod(end_point - 1, self.cols)
+                
+                start_x = start_col * cell_width + cell_width / 2
+                start_y = start_row * cell_height + cell_height / 2
+                end_x = end_col * cell_width + cell_width / 2
+                end_y = end_row * cell_height + cell_height / 2
+                
+                draw.line([start_x, start_y, end_x, end_y], fill="black", width=2)
+                
+                # Draw arrowhead
+                arrow_size = 10
+                angle = math.atan2(end_y - start_y, end_x - start_x)
+                arrow_x1 = end_x - arrow_size * math.cos(angle - math.pi / 6)
+                arrow_y1 = end_y - arrow_size * math.sin(angle - math.pi / 6)
+                arrow_x2 = end_x - arrow_size * math.cos(angle + math.pi / 6)
+                arrow_y2 = end_y - arrow_size * math.sin(angle + math.pi / 6)
+                draw.polygon([end_x, end_y, arrow_x1, arrow_y1, arrow_x2, arrow_y2], fill="black")
         
         # Highlight start and end points
         if hasattr(self, 'start_point') and self.start_point:
@@ -407,6 +422,16 @@ class PathFinderApp:
             y2 = y1 + cell_height
             draw.rectangle([x1, y1, x2, y2], outline="black", fill="blue")
             draw.text((x1 + cell_width / 2, y1 + cell_height / 2), str(self.end_point), fill="green")
+        
+        # Highlight user input points
+        for point in self.points:
+            row, col = divmod(point - 1, self.cols)
+            x1 = col * cell_width
+            y1 = row * cell_height
+            x2 = x1 + cell_width
+            y2 = y1 + cell_height
+            draw.rectangle([x1, y1, x2, y2], outline="black", fill="yellow")
+            draw.text((x1 + cell_width / 2, y1 + cell_height / 2), str(point), fill="green")
         
         image.save(file_path)
         messagebox.showinfo("Export Grid", "Grid exported successfully.")
