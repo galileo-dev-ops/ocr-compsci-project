@@ -1,5 +1,4 @@
 # spa.py
-from collections import deque
 import heapq
 import random
 
