@@ -1,6 +1,6 @@
 # gui.py
 import tkinter as tk
-from tkinter import simpledialog, messagebox, Toplevel, Menu
+from tkinter import simpledialog, messagebox, Toplevel, Menu, Spinbox
 from tkinter import filedialog
 from spa import find_shortest_path
 import threading
@@ -8,33 +8,49 @@ import json
 from PIL import Image, ImageDraw
 from database import create_database, populate_database, get_item_by_id, get_item, update_item_quantity
 import math
+
+
 class PathFinderApp:
     def __init__(self, root):
         self.root = root
         self.root.title("StockBot")
         
-        self.configure_grid()
+        self.rows = 1
+        self.cols = 1
         self.start_point = 1
-        self.end_point = self.rows * self.cols
+        self.end_point = 1
         self.points = []
         
         create_database()
-        populate_database(self.rows, self.cols, self.start_point, self.end_point)
         
-        self.create_widgets()
-        self.create_menu()
         self.visualization_window = None  # Initialize visualization window attribute
         self.canvas = None  # Initialize canvas attribute
+        
+        self.show_configuration_screen()  # Show configuration screen on startup
     
-    def configure_grid(self):
-        self.rows = simpledialog.askinteger("Configuration", "Enter the number of rows:", minvalue=1)
-        self.cols = simpledialog.askinteger("Configuration", "Enter the number of columns:", minvalue=1)
-        if not self.rows or not self.cols:
-            messagebox.showerror("Invalid Input", "Please enter valid numbers for rows and columns.")
-            self.root.destroy()
+    def show_configuration_screen(self):
+        config_window = Toplevel(self.root)
+        config_window.title("Configure Grid")
+        
+        tk.Label(config_window, text="Rows:").grid(row=0, column=0, padx=10, pady=10)
+        self.rows_spinbox = Spinbox(config_window, from_=1, to=100, width=5)
+        self.rows_spinbox.grid(row=0, column=1, padx=10, pady=10)
+        
+        tk.Label(config_window, text="Columns:").grid(row=1, column=0, padx=10, pady=10)
+        self.cols_spinbox = Spinbox(config_window, from_=1, to=100, width=5)
+        self.cols_spinbox.grid(row=1, column=1, padx=10, pady=10)
+        
+        tk.Button(config_window, text="OK", command=lambda: self.set_configuration(config_window)).grid(row=2, column=0, columnspan=2, pady=10)
+    
+    def set_configuration(self, config_window):
+        self.rows = int(self.rows_spinbox.get())
+        self.cols = int(self.cols_spinbox.get())
         self.start_point = 1
         self.end_point = self.rows * self.cols
         populate_database(self.rows, self.cols, self.start_point, self.end_point)
+        config_window.destroy()
+        self.create_widgets()  # Create widgets after configuration is set
+        self.create_menu()  # Create menu after configuration is set
     
     def create_widgets(self):
         control_frame = tk.Frame(self.root)
@@ -87,9 +103,6 @@ class PathFinderApp:
         
         self.update_quantity_button = tk.Button(control_frame, text="Update Quantity", command=self.update_quantity)
         self.update_quantity_button.grid(row=6, column=0, padx=5, pady=5, columnspan=3)
-        
-        self.export_button = tk.Button(control_frame, text="Export Grid", command=self.export_grid)
-        self.export_button.grid(row=7, column=0, padx=5, pady=5, columnspan=3)
     
     def create_menu(self):
         menu_bar = Menu(self.root)
@@ -125,7 +138,6 @@ class PathFinderApp:
         - Query an item by its ID to see its location and quantity.
         - Update the quantity of an item by its ID.
         - Save and load grid configurations.
-        - Export the grid and path as an image.
 
         How to Use:
         1. Configure the grid by entering the number of rows and columns.
@@ -135,7 +147,8 @@ class PathFinderApp:
         5. Use the "Update Quantity" button to update the quantity of a specific item.
         6. Use the "Save Configuration" option to save the current grid configuration.
         7. Use the "Load Configuration" option to load a saved grid configuration.
-        8. Use the "Export Grid" button to export the grid and path as an image file.
+
+        For more information, please refer to the user manual or contact support.
 
         Thank you for using StockBot!
         """)
@@ -204,6 +217,7 @@ class PathFinderApp:
             if quantity is not None:
                 update_item_quantity(item_id, quantity)
                 messagebox.showinfo("Update Quantity", f"ItemID: {item_id}\nNew Quantity: {quantity}")
+                self.draw_grid()
     
     def highlight_point(self, point, color):
         if self.canvas is None:
@@ -238,7 +252,6 @@ class PathFinderApp:
     def start_find_path_thread(self):
         threading.Thread(target=self.find_path).start()
     
-
     def find_path(self):
         try:
             points = list(map(int, self.points_entry.get().split(',')))
@@ -251,7 +264,6 @@ class PathFinderApp:
         if self.start_point in self.points or self.end_point in self.points:
             messagebox.showerror("Invalid Input", "You have inputted a start and/or end point. Please remove it!")
             return
-
         # Remove out-of-stock items from the points list
         valid_points = []
         self.open_visualization_window()
@@ -273,7 +285,7 @@ class PathFinderApp:
                 self.path_distance_label.config(text=f"Total Path Distance: {self.calculate_path_cost(path)}")
             else:
                 messagebox.showinfo("No Path", "No path found between the given points.")
-        except ValueError as e:
+        except (ValueError, KeyError) as e:
             messagebox.showerror("Path Error", str(e))
         
     def animate_path(self, path, valid_points):
