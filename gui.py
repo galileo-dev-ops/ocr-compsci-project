@@ -4,12 +4,10 @@ from tkinter import simpledialog, messagebox, Toplevel, Menu
 from tkinter import filedialog
 from spa import find_shortest_path
 import threading
-import random
 import json
 from PIL import Image, ImageDraw
 from database import create_database, populate_database, get_item_by_id, get_item, update_item_quantity
 import math
-
 class PathFinderApp:
     def __init__(self, root):
         self.root = root
