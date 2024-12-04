@@ -166,39 +166,90 @@ class PathFinderApp:
     def draw_grid(self):
         if self.canvas is None:
             return
+        
         self.canvas.delete("all")
         cell_width = min(800 // self.cols, 800 // self.rows)
         cell_height = cell_width
         font_size = max(8, cell_width // 3)
         
+        # Draw base grid
         for i in range(self.rows):
             for j in range(self.cols):
                 x1 = j * cell_width
                 y1 = i * cell_height
                 x2 = x1 + cell_width
                 y2 = y1 + cell_height
+                
                 item = get_item(i, j)
-                if item and item[1] == 0:
-                    color = "red"
+                cell_id = i * self.cols + j + 1
+                
+                # Set cell color based on stock status
+                if item and item[1] is not None and item[1] == 0:
+                    fill_color = "red"
                 else:
-                    color = "white"
-                self.canvas.create_rectangle(x1, y1, x2, y2, outline="black", fill=color)
-                self.canvas.create_text(x1 + cell_width / 2, y1 + cell_height / 2, text=str(i * self.cols + j + 1), fill="green", font=("Arial", font_size))
-    
+                    fill_color = "white"
+                
+                # Draw cell with appropriate color
+                self.canvas.create_rectangle(x1, y1, x2, y2, 
+                                        outline="black", 
+                                        fill=fill_color, 
+                                        tags=f"cell_{cell_id}")
+                
+                # Draw cell number
+                self.canvas.create_text(x1 + cell_width/2, y1 + cell_height/2,
+                                    text=str(cell_id),
+                                    font=("Arial", font_size),
+                                    fill="black",
+                                    tags=f"text_{cell_id}")
+                
+                # Show quantity if exists
+                if item and item[1] is not None:
+                    self.canvas.create_text(x1 + cell_width/2, y1 + 2*cell_height/3,
+                                        text=f"Qty:{item[1]}",
+                                        font=("Arial", font_size-2),
+                                        fill="black",
+                                        tags=f"qty_{cell_id}")
+
+    def highlight_point(self, point, color):
+        if self.canvas is None:
+            return
+            
+        cell_width = min(800 // self.cols, 800 // self.rows)
+        cell_height = cell_width
+        row, col = divmod(point - 1, self.cols)
+        x1 = col * cell_width
+        y1 = row * cell_height
+        
+        # Create highlight while preserving existing cell color
+        cell_tag = f"cell_{point}"
+        text_tag = f"text_{point}"
+        qty_tag = f"qty_{point}"
+        
+        # Add semi-transparent highlight
+        highlight = self.canvas.create_rectangle(x1, y1, x1 + cell_width, y1 + cell_height,
+                                            fill=color, stipple="gray50")
+        
+        # Raise existing elements above highlight
+        self.canvas.tag_raise(cell_tag)
+        self.canvas.tag_raise(text_tag)
+        self.canvas.tag_raise(qty_tag)
+        
     def on_canvas_click(self, event):
         cell_width = min(800 // self.cols, 800 // self.rows)
         cell_height = cell_width
         col = event.x // cell_width
         row = event.y // cell_height
-        self.show_item_info(row, col)
+        
+        item = get_item(row, col)
+        if item and item[1] is not None:  # Check if cell has quantity
+            self.show_item_info(row, col)
     
     def show_item_info(self, row, col):
         item = get_item(row, col)
-        if item:
-            item_id, quantity = item
-            messagebox.showinfo("Item Info", f"ItemID: {item_id}\nQuantity: {quantity}")
-        else:
-            messagebox.showinfo("Item Info", "No item found.")
+        if item and item[1] is not None:  # Double check item exists and has quantity
+            item_id = row * self.cols + col + 1
+            messagebox.showinfo("Item Info", 
+                f"ItemID: {item_id}\nRow: {row}\nCol: {col}\nQuantity: {item[1]}")
     
     def query_item_id(self):
         item_id = simpledialog.askinteger("Query ItemID", "Enter the ItemID:", minvalue=1)
@@ -210,14 +261,23 @@ class PathFinderApp:
             else:
                 messagebox.showinfo("Item Info", "No item found.")
     
+    # gui.py - Update update_quantity method
     def update_quantity(self):
         item_id = simpledialog.askinteger("Update Quantity", "Enter the ItemID:", minvalue=1)
         if item_id is not None:
-            quantity = simpledialog.askinteger("Update Quantity", "Enter the new quantity:", minvalue=0)
+            # Verify item exists
+            item = get_item_by_id(item_id)
+            if not item:
+                messagebox.showerror("Error", f"ItemID {item_id} does not exist")
+                return
+                
+            quantity = simpledialog.askinteger("Update Quantity", 
+                                            f"Enter the quantity for ItemID {item_id}:", 
+                                            minvalue=0)
             if quantity is not None:
                 update_item_quantity(item_id, quantity)
-                messagebox.showinfo("Update Quantity", f"ItemID: {item_id}\nNew Quantity: {quantity}")
-                self.draw_grid()
+                messagebox.showinfo("Success", 
+                                f"Updated quantity for ItemID {item_id} to {quantity}")
     
     def highlight_point(self, point, color):
         if self.canvas is None:

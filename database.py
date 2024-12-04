@@ -16,17 +16,19 @@ def create_database():
     conn.commit()
     conn.close()
 
+# database.py - Modify populate_database
 def populate_database(rows, cols, start_point, end_point):
     conn = sqlite3.connect('warehouse.db')
     c = conn.cursor()
     c.execute('DELETE FROM items')  # Clear existing data
-    item_id = 1
+    
+    # Initialize empty cells with NULL quantity
     for row in range(rows):
         for col in range(cols):
-            quantity = random.randint(1, 100)  # Random quantity for each item
-            c.execute('INSERT INTO items (ItemID, Row, Col, Quantity) VALUES (?, ?, ?, ?)',
-                      (item_id, row, col, quantity))
-            item_id += 1
+            item_id = row * cols + col + 1
+            c.execute('INSERT INTO items (ItemID, Row, Col, Quantity) VALUES (?, ?, ?, NULL)',
+                     (item_id, row, col))
+    
     conn.commit()
     conn.close()
 

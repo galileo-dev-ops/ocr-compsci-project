@@ -1,4 +1,3 @@
-# spa.py
 import heapq
 import random
 
