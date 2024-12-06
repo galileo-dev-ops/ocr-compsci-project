@@ -5,16 +5,30 @@ import random
 def create_database():
     conn = sqlite3.connect('warehouse.db')
     c = conn.cursor()
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS items (
-            ItemID INTEGER PRIMARY KEY,
-            Row INTEGER,
-            Col INTEGER,
-            Quantity INTEGER
-        )
-    ''')
+    
+    # Check if table exists
+    c.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='items'")
+    if c.fetchone():
+        # Add IsObstacle column if it doesn't exist
+        c.execute("PRAGMA table_info(items)")
+        columns = [column[1] for column in c.fetchall()]
+        if 'IsObstacle' not in columns:
+            c.execute('ALTER TABLE items ADD COLUMN IsObstacle INTEGER DEFAULT 0')
+    else:
+        # Create new table with all columns
+        c.execute('''
+            CREATE TABLE items (
+                ItemID INTEGER PRIMARY KEY,
+                Row INTEGER,
+                Col INTEGER,
+                Quantity INTEGER,
+                IsObstacle INTEGER DEFAULT 0
+            )
+        ''')
+    
     conn.commit()
     conn.close()
+
 
 # database.py - Modify populate_database
 def populate_database(rows, cols, start_point, end_point):
@@ -54,3 +68,21 @@ def update_item_quantity(item_id, quantity):
     c.execute('UPDATE items SET Quantity = ? WHERE ItemID = ?', (quantity, item_id))
     conn.commit()
     conn.close()
+
+# database.py - Add to existing functions
+def set_obstacle(row, col, is_obstacle=True):
+    create_database()  # Ensure column exists
+    conn = sqlite3.connect('warehouse.db')
+    c = conn.cursor()
+    c.execute('UPDATE items SET IsObstacle = ? WHERE Row = ? AND Col = ?', 
+              (1 if is_obstacle else 0, row, col))
+    conn.commit()
+    conn.close()
+
+def is_obstacle(row, col):
+    conn = sqlite3.connect('warehouse.db')
+    c = conn.cursor()
+    c.execute('SELECT IsObstacle FROM items WHERE Row = ? AND Col = ?', (row, col))
+    result = c.fetchone()
+    conn.close()
+    return bool(result[0]) if result else False

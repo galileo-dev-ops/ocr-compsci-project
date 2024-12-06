@@ -1,17 +1,27 @@
-# gui.py
 import tkinter as tk
 from tkinter import simpledialog, messagebox, Toplevel, Menu, Spinbox
 from tkinter import filedialog
-from spa import find_shortest_path
+from spa import PathFinder
 import threading
 import json
 from PIL import Image, ImageDraw
-from database import create_database, populate_database, get_item_by_id, get_item, update_item_quantity
+from database import create_database, populate_database, get_item_by_id, get_item, update_item_quantity, is_obstacle, set_obstacle
 import math
+import logging, sys
 
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stdout)
+    ]
+)
+
+logger = logging.getLogger('StockBot')
 
 class PathFinderApp:
     def __init__(self, root):
+        logger.debug("Initializing PathFinderApp")
         self.root = root
         self.root.title("StockBot")
         
@@ -90,7 +100,7 @@ class PathFinderApp:
         self.legend_canvas.create_text(40, 80, anchor="w", text="Path", fill="black")
         
         self.legend_canvas.create_rectangle(10, 100, 30, 120, outline="black", fill="red")
-        self.legend_canvas.create_text(40, 110, anchor="w", text="Out of Stock", fill="black")
+        self.legend_canvas.create_text(40, 110, anchor="w", text="Out of Stock/Inaccessible", fill="black")
         
         self.path_output = tk.Text(self.root, height=5, width=50)
         self.path_output.grid(row=1, column=0, padx=10, pady=10)
@@ -104,6 +114,23 @@ class PathFinderApp:
         self.update_quantity_button = tk.Button(control_frame, text="Update Quantity", command=self.update_quantity)
         self.update_quantity_button.grid(row=6, column=0, padx=5, pady=5, columnspan=3)
     
+        self.obstacle_mode = False
+        self.obstacle_button = tk.Button(control_frame, text="Toggle Obstacle Mode", 
+                                    command=self.toggle_obstacle_mode)
+        self.obstacle_button.grid(row=7, column=0, padx=5, pady=5, columnspan=3)
+
+        self.visualize_button = tk.Button(control_frame, 
+                                    text="Open Grid Visualization",
+                                    command=self.open_visualization_window)
+        self.visualize_button.grid(row=8, column=0, padx=5, pady=5, columnspan=3)
+
+    def toggle_obstacle_mode(self):
+        self.obstacle_mode = not self.obstacle_mode
+        if self.obstacle_mode:
+            self.obstacle_button.config(relief="sunken", bg="gray")
+        else:
+            self.obstacle_button.config(relief="raised", bg="SystemButtonFace")
+
     def create_menu(self):
         menu_bar = Menu(self.root)
         self.root.config(menu=menu_bar)
@@ -172,7 +199,6 @@ class PathFinderApp:
         cell_height = cell_width
         font_size = max(8, cell_width // 3)
         
-        # Draw base grid
         for i in range(self.rows):
             for j in range(self.cols):
                 x1 = j * cell_width
@@ -183,32 +209,27 @@ class PathFinderApp:
                 item = get_item(i, j)
                 cell_id = i * self.cols + j + 1
                 
-                # Set cell color based on stock status
-                if item and item[1] is not None and item[1] == 0:
+                # Set cell color based on status
+                if is_obstacle(i, j):
+                    fill_color = "gray"
+                elif item and item[1] is not None and item[1] == 0:
                     fill_color = "red"
                 else:
                     fill_color = "white"
                 
-                # Draw cell with appropriate color
                 self.canvas.create_rectangle(x1, y1, x2, y2, 
                                         outline="black", 
-                                        fill=fill_color, 
+                                        fill=fill_color,
                                         tags=f"cell_{cell_id}")
                 
-                # Draw cell number
-                self.canvas.create_text(x1 + cell_width/2, y1 + cell_height/2,
-                                    text=str(cell_id),
-                                    font=("Arial", font_size),
-                                    fill="black",
-                                    tags=f"text_{cell_id}")
-                
-                # Show quantity if exists
-                if item and item[1] is not None:
-                    self.canvas.create_text(x1 + cell_width/2, y1 + 2*cell_height/3,
-                                        text=f"Qty:{item[1]}",
-                                        font=("Arial", font_size-2),
+                if not is_obstacle(i, j):
+                    # Draw cell number
+                    self.canvas.create_text(x1 + cell_width/2, y1 + cell_height/2,
+                                        text=str(cell_id),
+                                        font=("Arial", font_size),
                                         fill="black",
-                                        tags=f"qty_{cell_id}")
+                                        tags=f"text_{cell_id}")
+                    
 
     def highlight_point(self, point, color):
         if self.canvas is None:
@@ -240,9 +261,14 @@ class PathFinderApp:
         col = event.x // cell_width
         row = event.y // cell_height
         
-        item = get_item(row, col)
-        if item and item[1] is not None:  # Check if cell has quantity
-            self.show_item_info(row, col)
+        if self.obstacle_mode:
+            current = is_obstacle(row, col)
+            set_obstacle(row, col, not current)
+            self.draw_grid()
+        else:
+            item = get_item(row, col)
+            if item and item[1] is not None and not is_obstacle(row, col):
+                self.show_item_info(row, col)
     
     def show_item_info(self, row, col):
         item = get_item(row, col)
@@ -263,10 +289,12 @@ class PathFinderApp:
     
     # gui.py - Update update_quantity method
     def update_quantity(self):
+        logger.debug("Starting quantity update")
         item_id = simpledialog.askinteger("Update Quantity", "Enter the ItemID:", minvalue=1)
         if item_id is not None:
             # Verify item exists
             item = get_item_by_id(item_id)
+            logger.debug(f"ItemID entered: {item_id}")
             if not item:
                 messagebox.showerror("Error", f"ItemID {item_id} does not exist")
                 return
@@ -274,8 +302,10 @@ class PathFinderApp:
             quantity = simpledialog.askinteger("Update Quantity", 
                                             f"Enter the quantity for ItemID {item_id}:", 
                                             minvalue=0)
+            logger.debug(f"Quantity entered: {quantity}")
             if quantity is not None:
                 update_item_quantity(item_id, quantity)
+                logger.info(f"Updated ItemID {item_id} quantity to {quantity}")
                 messagebox.showinfo("Success", 
                                 f"Updated quantity for ItemID {item_id} to {quantity}")
     
@@ -313,9 +343,20 @@ class PathFinderApp:
         threading.Thread(target=self.find_path).start()
     
     def find_path(self):
+        logger.debug("Starting pathfinding calculation")
         try:
             points = list(map(int, self.points_entry.get().split(',')))
             self.points = points
+            points_text = self.points_entry.get()
+            logger.debug(f"Input points: {points_text}")
+
+            if points_text.strip():
+                points = [int(p.strip()) for p in points_text.split(',')]
+                logger.debug(f"Parsed points: {points}")
+            else:
+                points = []
+                logger.debug("No points provided")
+                
         except ValueError:
             messagebox.showerror("Invalid Input", "Please enter valid points.")
             return
@@ -336,8 +377,10 @@ class PathFinderApp:
                 valid_points.append(point)
 
         try:
-            path = find_shortest_path(self.start_point, self.end_point, valid_points, self.rows, self.cols)
+            pathfinder = PathFinder(self.rows, self.cols)
+            path = pathfinder.find_shortest_path(self.start_point, self.end_point, valid_points)
             if path:
+                logger.info(f"Path found: {path}")
                 self.path = path  # Store the path in an instance variable
                 self.animate_path(path, valid_points)
                 self.path_output.delete(1.0, tk.END)
@@ -346,6 +389,7 @@ class PathFinderApp:
             else:
                 messagebox.showinfo("No Path", "No path found between the given points.")
         except (ValueError, KeyError) as e:
+            logger.error(f"Pathfinding failed: {str(e)}")
             messagebox.showerror("Path Error", str(e))
         
     def animate_path(self, path, valid_points):
@@ -369,8 +413,8 @@ class PathFinderApp:
                 x2 = x1 + cell_width
                 y2 = y1 + cell_height
                 self.canvas.create_rectangle(x1, y1, x2, y2, outline="black", fill="green")
-                self.canvas.create_text(x1 + cell_width / 2, y1 + cell_height / 2, text=str(point), fill="green")
-        
+                self.canvas.create_text(x1 + cell_width / 2, y1 + cell_height / 2, text=str(point), fill="black")
+            
         # Highlight start and end points
         self.highlight_point(self.start_point, "blue")
         self.highlight_point(self.end_point, "blue")
