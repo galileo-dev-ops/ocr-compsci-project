@@ -397,11 +397,40 @@ class PathFinderApp:
         cell_width = min(800 // self.cols, 800 // self.rows)
         cell_height = cell_width
         
-        for i in range(len(path) - 1):
-            self.draw_arrow(path[i], path[i + 1])
-            self.root.update()
-            self.root.after(100)  # Adjust the delay for animation speed
+        # Track visited points to avoid multiple decrements
+        visited_points = set()
         
+        for i in range(len(path) - 1):
+            current_point = path[i]
+            next_point = path[i + 1]
+            
+            # Update quantity if point is in user-specified points
+            if current_point in self.points and current_point not in visited_points:
+                row, col = divmod(current_point - 1, self.cols)
+                item = get_item(row, col)
+                if item and item[1] is not None and item[1] > 0:
+                    new_quantity = item[1] - 1
+                    update_item_quantity(current_point, new_quantity)
+                    logger.info(f"Updated quantity for point {current_point} to {new_quantity}")
+                    visited_points.add(current_point)
+            
+            self.draw_arrow(current_point, next_point)
+            self.root.update()
+            self.root.after(100)
+        
+        # Check final point
+        if path[-1] in self.points and path[-1] not in visited_points:
+            row, col = divmod(path[-1] - 1, self.cols)
+            item = get_item(row, col)
+            if item and item[1] is not None and item[1] > 0:
+                new_quantity = item[1] - 1
+                update_item_quantity(path[-1], new_quantity)
+                logger.info(f"Updated quantity for point {path[-1]} to {new_quantity}")
+        
+        # Redraw grid with updated quantities
+        self.draw_grid()
+        
+        # Draw path visualization
         for point in path:
             row, col = divmod(point - 1, self.cols)
             item = get_item(row, col)
@@ -414,12 +443,11 @@ class PathFinderApp:
                 y2 = y1 + cell_height
                 self.canvas.create_rectangle(x1, y1, x2, y2, outline="black", fill="green")
                 self.canvas.create_text(x1 + cell_width / 2, y1 + cell_height / 2, text=str(point), fill="black")
-            
-        # Highlight start and end points
+        
+        # Highlight points
         self.highlight_point(self.start_point, "blue")
         self.highlight_point(self.end_point, "blue")
         
-        # Highlight user input points
         for point in self.points:
             if point in valid_points:
                 self.highlight_point(point, "yellow")
